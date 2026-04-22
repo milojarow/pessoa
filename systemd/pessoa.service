@@ -1,0 +1,14 @@
+[Unit]
+Description=Pessoa - Isolated VPN-tunneled browser sessions
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/s45-panel
+ExecStart=%h/projects/s45-panel/venv/bin/python %h/projects/s45-panel/run.py
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=default.target

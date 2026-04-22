@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+
+    <!-- Theme System (must load before Tailwind) -->
+    <link rel="stylesheet" href="/static/theme.css">
+
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+
+    <!-- Custom styles -->
+    <style>
+        .client-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .client-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+
+    <!-- Theme Initialization (runs before page render to avoid flash) -->
+    <script>
+        (function initTheme() {
+            // Read saved preference: 'light', 'dark', or 'system' (default)
+            const savedTheme = localStorage.getItem('theme') || 'system';
+
+            // Detect system preference
+            const systemPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+
+            // Determine actual theme to apply
+            let themeToApply;
+            if (savedTheme === 'system') {
+                themeToApply = systemPrefersDark ? 'dark' : 'light';
+            } else {
+                themeToApply = savedTheme;
+            }
+
+            // Apply theme to document
+            document.documentElement.dataset.theme = themeToApply;
+
+            // Store current mode for toggle button
+            window.__themeMode__ = savedTheme; // 'system', 'light', or 'dark'
+        })();
+
+        // Listen to system theme changes (only if user is in 'system' mode)
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                const currentMode = localStorage.getItem('theme') || 'system';
+                if (currentMode === 'system') {
+                    document.documentElement.dataset.theme = e.matches ? 'dark' : 'light';
+                }
+            });
+        }
+
+        // Toggle theme function
+        function toggleTheme() {
+            const currentMode = localStorage.getItem('theme') || 'system';
+            let nextMode;
+
+            // Cycle: system -> light -> dark -> system
+            if (currentMode === 'system') {
+                nextMode = 'light';
+            } else if (currentMode === 'light') {
+                nextMode = 'dark';
+            } else {
+                nextMode = 'system';
+            }
+
+            // Save preference
+            localStorage.setItem('theme', nextMode);
+            window.__themeMode__ = nextMode;
+
+            // Apply theme
+            if (nextMode === 'system') {
+                const systemPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+                document.documentElement.dataset.theme = systemPrefersDark ? 'dark' : 'light';
+            } else {
+                document.documentElement.dataset.theme = nextMode;
+            }
+
+            // Update toggle button text
+            updateThemeButtonText();
+        }
+
+        // Update theme button text to show current mode
+        function updateThemeButtonText() {
+            const btn = document.getElementById('theme-toggle-btn');
+            if (!btn) return;
+
+            const mode = localStorage.getItem('theme') || 'system';
+            const textSpan = btn.querySelector('.theme-mode-text');
+            if (textSpan) {
+                textSpan.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+            }
+        }
+    </script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        // Spinner SVG
+        const spinnerSVG = '<svg class="inline w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+
+        async function openBrowser(slug) {
+            const btn = document.getElementById('browser-btn-' + slug);
+            const originalHTML = btn.innerHTML;
+
+            // Show card loading overlay
+            const loadingDiv = document.getElementById('loading-' + slug);
+            const loadingText = document.getElementById('loading-text-' + slug);
+            if (loadingDiv && loadingText) {
+                loadingText.innerHTML = '<div class="flex items-center justify-center"><svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Opening Firefox...</div>';
+                loadingDiv.classList.remove('hidden');
+            }
+
+            // Disable button and show loading
+            btn.disabled = true;
+            btn.innerHTML = spinnerSVG + ' Opening...';
+            btn.classList.add('opacity-75', 'cursor-wait');
+
+            try {
+                // Start browser and wait for it to be ready
+                const response = await fetch(`/api/clients/${slug}/browser/start`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to start browser');
+                }
+
+                // Show success with checkmark
+                if (loadingDiv && loadingText) {
+                    loadingText.innerHTML = '<div class="flex items-center justify-center text-green-600"><svg class="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Browser Opened!</div>';
+
+                    // Hide after 2 seconds
+                    setTimeout(() => {
+                        loadingDiv.classList.add('hidden');
+                    }, 2000);
+                }
+
+                // Re-enable button
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('opacity-75', 'cursor-wait');
+            } catch (error) {
+                console.error('Error starting browser:', error);
+
+                // Show error message in overlay
+                if (loadingDiv && loadingText) {
+                    loadingText.innerHTML = '<div class="flex items-center justify-center text-red-600"><svg class="h-6 w-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Failed to open browser</div>';
+
+                    // Hide after 3 seconds
+                    setTimeout(() => {
+                        loadingDiv.classList.add('hidden');
+                    }, 3000);
+                }
+
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('opacity-75', 'cursor-wait');
+            }
+        }
+
+        // VPN button states are handled server-side via template rendering.
+        // No client-side button manipulation needed.
+
+        // Speed up polling to 2s when a client is in "Starting" state,
+        // then revert to the default 10s baseline when done.
+        let fastPolling = false;
+        document.addEventListener('htmx:afterSwap', function(event) {
+            const target = event.detail.target;
+            if (target && target.id === 'clients-grid') {
+                const hasStarting = target.querySelector('.starting-indicator') !== null;
+
+                if (hasStarting && !fastPolling) {
+                    fastPolling = true;
+                    target.setAttribute('hx-trigger', 'every 2s');
+                    htmx.process(target);
+                } else if (!hasStarting && fastPolling) {
+                    fastPolling = false;
+                    target.setAttribute('hx-trigger', 'every 10s');
+                    htmx.process(target);
+                }
+            }
+        });
+
+        // Create new client from WireGuard .conf file
+        // The client name is derived from the filename (e.g., client-a.conf -> client-a)
+        async function createClient(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const configInput = form.querySelector('input[name="wireguard_config"]');
+
+            if (!configInput.files[0]) {
+                alert('Please select a WireGuard .conf file');
+                return;
+            }
+
+            const file = configInput.files[0];
+            const filename = file.name;
+
+            if (!filename.endsWith('.conf')) {
+                alert('File must be a .conf file');
+                return;
+            }
+
+            // Derive slug from filename: "client-a.conf" -> "client-a"
+            const slug = filename.replace(/\.conf$/, '').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+
+            if (!slug) {
+                alert('Could not derive client name from filename');
+                return;
+            }
+
+            // Show the derived name
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = `Creating ${slug}...`;
+
+            try {
+                // Step 1: Create client directory structure
+                const formData = new FormData();
+                formData.append('slug', slug);
+
+                const createResponse = await fetch('/api/clients', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const createData = await createResponse.json();
+
+                if (!createResponse.ok) {
+                    throw new Error(createData.detail || 'Failed to create client');
+                }
+
+                // Step 2: Upload WireGuard config
+                const configFormData = new FormData();
+                configFormData.append('config_file', file);
+
+                const uploadResponse = await fetch(`/api/clients/${slug}/wireguard-config`, {
+                    method: 'POST',
+                    body: configFormData
+                });
+
+                const uploadData = await uploadResponse.json();
+
+                if (!uploadResponse.ok) {
+                    throw new Error(uploadData.detail || 'Failed to upload config');
+                }
+
+                // Success - close modal and refresh
+                document.getElementById('new-client-modal').classList.add('hidden');
+                form.reset();
+                document.getElementById('selected-file-name').textContent = '';
+                htmx.ajax('GET', '/api/clients', {target: '#clients-grid', swap: 'innerHTML'});
+
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+
+        // Upload WireGuard config file
+        async function uploadWireguardConfig(slug) {
+            const form = document.getElementById('upload-form-' + slug);
+            const fileInput = form.querySelector('input[type="file"]');
+            const errorDiv = document.getElementById('upload-error-' + slug);
+            const errorText = errorDiv.querySelector('p');
+
+            if (!fileInput.files[0]) {
+                errorText.textContent = 'Please select a .conf file';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            // Hide previous errors
+            errorDiv.classList.add('hidden');
+
+            // Create FormData
+            const formData = new FormData();
+            formData.append('config_file', fileInput.files[0]);
+
+            try {
+                const response = await fetch(`/api/clients/${slug}/wireguard-config`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Upload failed');
+                }
+
+                // Success - close modal and refresh client list
+                document.getElementById('upload-modal-' + slug).classList.add('hidden');
+                htmx.ajax('GET', '/api/clients', {target: '#clients-grid', swap: 'innerHTML'});
+
+                // Show success message (optional)
+                alert(`WireGuard config uploaded successfully for ${slug}!`);
+            } catch (error) {
+                errorText.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        // Real-time client search/filter
+        function filterClients() {
+            const searchInput = document.getElementById('client-search');
+            if (!searchInput) return;
+
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const clientCards = document.querySelectorAll('.client-card');
+            let visibleCount = 0;
+
+            clientCards.forEach(function(card) {
+                // Get client name and slug from the card
+                const nameElement = card.querySelector('h3');
+                const slugElement = card.querySelector('p.text-sm');
+
+                if (!nameElement) {
+                    card.style.display = '';
+                    return;
+                }
+
+                const clientName = nameElement.textContent.toLowerCase();
+                const clientSlug = slugElement ? slugElement.textContent.toLowerCase() : '';
+
+                // Check if search term matches name or slug
+                const matchesSearch = searchTerm === '' ||
+                                    clientName.includes(searchTerm) ||
+                                    clientSlug.includes(searchTerm);
+
+                if (matchesSearch) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Update "no results" message
+            updateNoResultsMessage(visibleCount, searchTerm);
+        }
+
+        // Update or create "no results" message
+        function updateNoResultsMessage(visibleCount, searchTerm) {
+            const grid = document.getElementById('clients-grid');
+            if (!grid) return;
+
+            let noResultsDiv = document.getElementById('no-search-results');
+
+            if (visibleCount === 0 && searchTerm !== '') {
+                // Show "no results" message
+                if (!noResultsDiv) {
+                    noResultsDiv = document.createElement('div');
+                    noResultsDiv.id = 'no-search-results';
+                    noResultsDiv.className = 'col-span-full text-center py-12 text-gray-500';
+                    noResultsDiv.innerHTML = `
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <p class="text-lg font-medium">No clients found</p>
+                        <p class="text-sm mt-2">Try a different search term</p>
+                    `;
+                    grid.appendChild(noResultsDiv);
+                } else {
+                    noResultsDiv.style.display = '';
+                }
+            } else {
+                // Hide "no results" message
+                if (noResultsDiv) {
+                    noResultsDiv.style.display = 'none';
+                }
+            }
+        }
+
+        // Initialize search when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('client-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', filterClients);
+            }
+        });
+
+        // Re-initialize search after HTMX swaps new content
+        document.addEventListener('htmx:afterSwap', function(event) {
+            if (event.detail.target && event.detail.target.id === 'clients-grid') {
+                // Re-apply search filter after content loads
+                filterClients();
+            }
+        });
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-xl">Pes</span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-900">Client Panel</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Theme Toggle Button -->
+                    <button
+                        id="theme-toggle-btn"
+                        class="theme-toggle"
+                        onclick="toggleTheme()"
+                        title="Toggle theme (System/Light/Dark)"
+                    >
+                        <!-- Sun Icon (visible in dark mode) -->
+                        <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <!-- Moon Icon (visible in light mode) -->
+                        <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                    </button>
+
+                    <button
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition"
+                        onclick="document.getElementById('new-client-modal').classList.remove('hidden')"
+                    >
+                        + New Client
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Clients Grid -->
+        <div class="mb-6 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-gray-900">Clients</h2>
+            <div class="flex items-center space-x-2">
+                <input
+                    id="client-search"
+                    type="text"
+                    placeholder="Search clients..."
+                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+            </div>
+        </div>
+
+        <div id="clients-grid"
+             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+             hx-get="/api/clients"
+             hx-trigger="load, every 10s"
+             hx-swap="innerHTML">
+            <!-- Client cards will be loaded here via HTMX -->
+            <div class="col-span-full text-center py-12 text-gray-500">
+                <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                <p class="text-lg font-medium">Loading clients...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- New Client Modal -->
+    <div id="new-client-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-bold text-gray-900">New Client</h3>
+                <p class="text-sm text-gray-600 mt-1">The client name is taken from the filename</p>
+            </div>
+            <form class="px-6 py-4" onsubmit="createClient(event)">
+                <div class="mb-4">
+                    <input
+                        type="file"
+                        id="wireguard-file-input"
+                        name="wireguard_config"
+                        accept=".conf"
+                        required
+                        class="hidden"
+                        onchange="document.getElementById('selected-file-name').textContent = this.files[0] ? this.files[0].name : ''"
+                    />
+                    <button
+                        type="button"
+                        onclick="document.getElementById('wireguard-file-input').click()"
+                        class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-center cursor-pointer"
+                    >
+                        <svg class="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700">Upload WireGuard .conf file</span>
+                    </button>
+                    <p id="selected-file-name" class="text-sm text-blue-600 font-medium mt-2 text-center"></p>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                    <button
+                        type="button"
+                        class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                        onclick="document.getElementById('new-client-modal').classList.add('hidden'); document.getElementById('selected-file-name').textContent = '';"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                    >
+                        Create Client
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

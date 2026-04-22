@@ -1,0 +1,93 @@
+#!/bin/bash
+# Pessoa Browser Launcher
+# Launches Firefox inside client's WireGuard network namespace
+
+set -e
+
+CLIENT="$1"
+
+if [ -z "$CLIENT" ]; then
+    echo "Usage: pessoa-browser <client-slug>"
+    echo "Example: pessoa-browser client-a"
+    exit 1
+fi
+
+NETNS="pessoa-$CLIENT"
+PROFILE_DIR="$HOME/.pessoa/clients/$CLIENT/browser/profile"
+
+# Verify VPN is running (namespace exists)
+if ! sudo ip netns list 2>/dev/null | grep -q "^$NETNS "; then
+    echo "Error: VPN not running for client '$CLIENT'"
+    echo "Start VPN from the Pessoa panel first."
+    exit 1
+fi
+
+if [ ! -d "$PROFILE_DIR" ]; then
+    echo "Error: Profile directory not found: $PROFILE_DIR"
+    exit 1
+fi
+
+# Kill any existing Firefox process using this profile
+kill_existing_browser() {
+    local profile_dir="$1"
+    local client_name="$2"
+
+    local pids=$(pgrep -f "firefox.*--profile.*$profile_dir" || true)
+
+    if [ -n "$pids" ]; then
+        echo "Terminating existing Firefox for '$client_name'..."
+        echo "$pids" | xargs kill 2>/dev/null || true
+
+        for i in {1..6}; do
+            if ! pgrep -f "firefox.*--profile.*$profile_dir" > /dev/null 2>&1; then
+                break
+            fi
+            sleep 0.5
+        done
+
+        pids=$(pgrep -f "firefox.*--profile.*$profile_dir" || true)
+        if [ -n "$pids" ]; then
+            echo "$pids" | xargs kill -9 2>/dev/null || true
+            sleep 0.5
+        fi
+    fi
+
+    # Remove stale lock file
+    local lock_file="$profile_dir/lock"
+    if [ -L "$lock_file" ]; then
+        rm -f "$lock_file" 2>/dev/null || true
+    fi
+}
+
+kill_existing_browser "$PROFILE_DIR" "$CLIENT"
+
+USER_JS="$PROFILE_DIR/user.js"
+if [ -f "$USER_JS" ]; then
+    sed -i '/network\.proxy\./d' "$USER_JS"
+fi
+echo 'user_pref("network.proxy.type", 0);' >> "$USER_JS"
+
+# Detect Wayland display
+WAYLAND_NAME="${WAYLAND_DISPLAY:-}"
+if [ -z "$WAYLAND_NAME" ]; then
+    WAYLAND_NAME=$(basename "$(ls /run/user/$(id -u)/wayland-* 2>/dev/null | grep -v lock | head -1)" 2>/dev/null || true)
+fi
+
+echo "Launching Firefox for client: $CLIENT"
+echo "All traffic routed through WireGuard tunnel via netns $NETNS"
+
+# Launch Firefox inside the network namespace
+sudo ip netns exec "$NETNS" sudo -u "$USER" \
+    env HOME="$HOME" \
+        WAYLAND_DISPLAY="$WAYLAND_NAME" \
+        XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}" \
+        DISPLAY="${DISPLAY:-}" \
+    firefox \
+        --profile "$PROFILE_DIR" \
+        --new-instance \
+        --no-remote \
+        --name "Pessoa-$CLIENT" \
+        --class "Pessoa-$CLIENT" \
+    > /dev/null 2>&1 &
+
+echo "Firefox launched (PID: $!)"

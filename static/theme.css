@@ -1,0 +1,256 @@
+/* Color Scheme Hints for Browser Controls */
+:root {
+  color-scheme: light;
+}
+
+/* ============================================
+   DESIGN TOKENS - Base Color Palettes
+   ============================================ */
+
+/* Gray Scale - Light Theme Base */
+:root {
+  --gray-0: #fafafa;
+  --gray-1: #f9fafb;
+  --gray-2: #f3f4f6;
+  --gray-3: #e5e7eb;
+  --gray-4: #d1d5db;
+  --gray-5: #9ca3af;
+  --gray-6: #6b7280;
+  --gray-7: #4b5563;
+  --gray-8: #374151;
+  --gray-9: #1f2937;
+  --gray-10: #1a1a2e;
+
+  /* Blue Accent - Light Theme Base */
+  --blue-3: #dbeafe;
+  --blue-4: #93c5fd;
+  --blue-6: #2563eb;
+  --blue-7: #1d4ed8;
+  --blue-8: #1e40af;
+
+  /* Status Colors - Light */
+  --green-5: #22c55e;
+  --green-6: #16a34a;
+  --red-5: #ef4444;
+  --red-6: #dc2626;
+}
+
+/* ============================================
+   SEMANTIC TOKENS - Light Theme (Default)
+   ============================================ */
+
+:root {
+  /* Backgrounds & Surfaces */
+  --bg: var(--gray-2);
+  --surface-0: var(--gray-0);
+  --surface-1: var(--gray-1);
+  --surface-2: var(--gray-2);
+  --surface-3: var(--gray-3);
+
+  /* Borders */
+  --border: var(--gray-3);
+  --border-strong: var(--gray-4);
+
+  /* Text */
+  --text: var(--gray-10);
+  --text-strong: var(--gray-9);
+  --text-muted: var(--gray-6);
+  --text-subtle: var(--gray-5);
+
+  /* Accent / Primary */
+  --accent: var(--blue-6);
+  --accent-hover: var(--blue-7);
+  --accent-subtle: var(--blue-3);
+  --accent-contrast: var(--gray-0);
+
+  /* Status Colors */
+  --success: var(--green-6);
+  --success-subtle: #dcfce7;
+  --error: var(--red-6);
+  --error-subtle: #fee2e2;
+  --warning: #d97706;
+  --warning-subtle: #fef3c7;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   DARK THEME - Semantic Tokens Override
+   ============================================ */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Backgrounds & Surfaces - Dark coherent palette */
+  --bg: #0a0b0d;
+  --surface-0: #111316;
+  --surface-1: #16181c;
+  --surface-2: #1c1f24;
+  --surface-3: #23262c;
+
+  /* Borders */
+  --border: #2a2e35;
+  --border-strong: #363a42;
+
+  /* Text - Higher contrast for readability */
+  --text: #e8eaed;
+  --text-strong: #f1f3f5;
+  --text-muted: #9ca3af;
+  --text-subtle: #6b7280;
+
+  /* Accent - Lighter blue for dark backgrounds */
+  --accent: #60a5fa;
+  --accent-hover: #3b82f6;
+  --accent-subtle: #1e3a5f;
+  --accent-contrast: #0a0b0d;
+
+  /* Status Colors - Adjusted for dark mode */
+  --success: #4ade80;
+  --success-subtle: #14332d;
+  --error: #f87171;
+  --error-subtle: #3d1a1a;
+  --warning: #fbbf24;
+  --warning-subtle: #3d2d1a;
+
+  /* Shadows - Softer in dark mode */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   TAILWIND INTEGRATION
+   Override Tailwind classes with design tokens
+   ============================================ */
+
+/* Background Colors */
+.bg-gray-50 { background-color: var(--bg) !important; }
+.bg-white { background-color: var(--surface-0) !important; }
+.bg-gray-100 { background-color: var(--surface-1) !important; }
+.bg-gray-200 { background-color: var(--surface-2) !important; }
+.bg-gray-300 { background-color: var(--surface-3) !important; }
+
+/* Text Colors */
+.text-gray-900 { color: var(--text) !important; }
+.text-gray-700 { color: var(--text-strong) !important; }
+.text-gray-500 { color: var(--text-muted) !important; }
+.text-gray-600 { color: var(--text-muted) !important; }
+.text-gray-300 { color: var(--text-subtle) !important; }
+
+/* Border Colors */
+.border-gray-200 { border-color: var(--border) !important; }
+.border-gray-300 { border-color: var(--border-strong) !important; }
+
+/* Accent/Primary Colors */
+.bg-blue-600 { background-color: var(--accent) !important; }
+.bg-blue-700 { background-color: var(--accent-hover) !important; }
+.bg-blue-100 { background-color: var(--accent-subtle) !important; }
+.text-blue-600 { color: var(--accent) !important; }
+/* text-white must stay light in both themes (used on colored buttons) */
+.text-white { color: #f0f0f0 !important; }
+
+/* Status Colors - Success */
+.bg-green-100 { background-color: var(--success-subtle) !important; }
+.text-green-600 { color: var(--success) !important; }
+.text-green-800 { color: var(--success) !important; }
+.bg-green-600 { background-color: var(--success) !important; }
+.bg-green-700 { background-color: #15803d !important; }
+.hover\:bg-green-700:hover { background-color: #15803d !important; }
+
+/* Status Colors - Error/Danger */
+.bg-red-100 { background-color: var(--error-subtle) !important; }
+.text-red-600 { color: var(--error) !important; }
+.text-red-800 { color: var(--error) !important; }
+.bg-red-600 { background-color: var(--error) !important; }
+.bg-red-700 { background-color: #b91c1c !important; }
+.hover\:bg-red-700:hover { background-color: #b91c1c !important; }
+
+/* Status Colors - Warning */
+.bg-yellow-100 { background-color: var(--warning-subtle) !important; }
+.text-yellow-800 { color: var(--warning) !important; }
+.bg-yellow-600 { background-color: var(--warning) !important; }
+.bg-yellow-700 { background-color: #b45309 !important; }
+.hover\:bg-yellow-700:hover { background-color: #b45309 !important; }
+
+/* Status Colors - Neutral/Disabled */
+.bg-gray-400 { background-color: var(--text-subtle) !important; }
+.text-gray-200 { color: var(--surface-3) !important; }
+
+/* Hover States */
+.hover\:bg-blue-700:hover { background-color: var(--accent-hover) !important; }
+.hover\:bg-gray-100:hover { background-color: var(--surface-1) !important; }
+
+/* Focus Ring */
+.focus\:ring-blue-500:focus {
+  --tw-ring-color: var(--accent) !important;
+}
+
+/* Shadow Overrides */
+.shadow-sm { box-shadow: var(--shadow-sm) !important; }
+.shadow { box-shadow: var(--shadow) !important; }
+
+/* ============================================
+   THEME TOGGLE BUTTON
+   ============================================ */
+
+.theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.theme-toggle:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+
+.theme-toggle svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--text-muted);
+  transition: all 0.2s ease-in-out;
+}
+
+.theme-toggle:hover svg {
+  color: var(--text);
+}
+
+/* Hide/show icons based on theme */
+.theme-toggle .sun-icon {
+  display: none;
+}
+
+.theme-toggle .moon-icon {
+  display: block;
+}
+
+:root[data-theme="dark"] .theme-toggle .sun-icon {
+  display: block;
+}
+
+:root[data-theme="dark"] .theme-toggle .moon-icon {
+  display: none;
+}
+
+/* ============================================
+   MODAL IMPROVEMENTS
+   ============================================ */
+
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="dark"] .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+}
