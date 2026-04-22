@@ -1,4 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" rx="6" fill="#2563eb"/>
-  <text x="16" y="22" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="700" font-size="14" fill="#f0f0f0">Pes</text>
+  <g fill="#ffffff" opacity="0.22">
+    <circle cx="12" cy="11" r="4"/>
+    <path d="M 2,27 C 2,19 6,17 12,17 C 18,17 22,19 22,27 Z"/>
+  </g>
+  <g fill="#ffffff" opacity="0.45">
+    <circle cx="15" cy="11" r="4"/>
+    <path d="M 5,27 C 5,19 9,17 15,17 C 21,17 25,19 25,27 Z"/>
+  </g>
+  <g fill="#ffffff">
+    <circle cx="18" cy="11" r="4"/>
+    <path d="M 8,27 C 8,19 12,17 18,17 C 24,17 28,19 28,27 Z"/>
+  </g>
 </svg>
