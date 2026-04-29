@@ -20,8 +20,19 @@ app = FastAPI(
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+STATIC_DIR = BASE_DIR / "static"
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
+def asset_v(path: str) -> str:
+    try:
+        return str(int((STATIC_DIR / path).stat().st_mtime))
+    except FileNotFoundError:
+        return "0"
+
+
+templates.env.globals["asset_v"] = asset_v
 
 
 @app.get("/", response_class=HTMLResponse)
