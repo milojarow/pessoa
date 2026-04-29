@@ -70,6 +70,8 @@
   --error-subtle: #fee2e2;
   --warning: #d97706;
   --warning-subtle: #fef3c7;
+  --info: oklch(32% 0.19 250);
+  --info-subtle: oklch(92% 0.05 240);
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -114,6 +116,8 @@
   --error-subtle: #3d1a1a;
   --warning: #fbbf24;
   --warning-subtle: #3d2d1a;
+  --info: oklch(96% 0.02 245);
+  --info-subtle: oklch(35% 0.14 245);
 
   /* Shadows - Softer in dark mode */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
@@ -147,8 +151,9 @@
 /* Accent/Primary Colors */
 .bg-blue-600 { background-color: var(--accent) !important; }
 .bg-blue-700 { background-color: var(--accent-hover) !important; }
-.bg-blue-100 { background-color: var(--accent-subtle) !important; }
+.bg-blue-100 { background-color: var(--info-subtle) !important; }
 .text-blue-600 { color: var(--accent) !important; }
+.text-blue-800 { color: var(--info) !important; }
 /* text-white must stay light in both themes (used on colored buttons) */
 .text-white { color: #f0f0f0 !important; }
 

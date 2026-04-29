@@ -151,7 +151,7 @@ def _build_client_info(slug: str) -> dict:
     else:
         vpn = _get_vpn_status_sync(slug)
         state = "ready"
-        status = vpn  # "Active", "Stopped", "Starting", "Error"
+        status = vpn  # "Active", "Idle", "Stopped", "Starting", "Error"
 
     return {
         "slug": slug,
@@ -177,31 +177,44 @@ def _get_vpn_status_sync(slug: str) -> str:
     if netns not in result.stdout:
         return "Stopped"
 
-    # Check handshake
+    # Read peer handshake + transfer in a single call
     result = subprocess.run(
-        ["sudo", "--non-interactive", "ip", "netns", "exec", netns, "wg", "show", iface, "latest-handshakes"],
+        ["sudo", "--non-interactive", "ip", "netns", "exec", netns, "wg", "show", iface, "dump"],
         capture_output=True, text=True, timeout=5,
     )
     if result.returncode != 0:
         return "Error"
 
-    # Parse handshake timestamp
-    for line in result.stdout.strip().splitlines():
-        parts = line.split("\t")
-        if len(parts) == 2:
-            try:
-                ts = int(parts[1])
-                if ts == 0:
-                    return "Starting"
-                age = int(datetime.now().timestamp()) - ts
-                if age < 180:
-                    return "Active"
-                else:
-                    return "Error"
-            except ValueError:
-                return "Error"
+    # dump format: line 1 = interface, lines 2+ = peers
+    # peer fields (tab-separated): public-key, preshared-key, endpoint,
+    # allowed-ips, latest-handshake, rx-bytes, tx-bytes, persistent-keepalive
+    lines = result.stdout.strip().splitlines()
+    if len(lines) < 2:
+        return "Starting"
 
-    return "Starting"
+    peer_parts = lines[1].split("\t")
+    if len(peer_parts) < 7:
+        return "Error"
+
+    try:
+        ts = int(peer_parts[4])
+        rx = int(peer_parts[5])
+        tx = int(peer_parts[6])
+    except ValueError:
+        return "Error"
+
+    if ts == 0:
+        return "Starting"
+
+    age = int(datetime.now().timestamp()) - ts
+    if age < 180:
+        return "Active"
+
+    # Stale handshake: WireGuard renegotiates on demand when traffic flows, so
+    # a stale handshake after past transfer is an idle tunnel, not a broken one.
+    if rx > 0 or tx > 0:
+        return "Idle"
+    return "Error"
 
 
 def create_client(slug: str) -> dict:
@@ -406,7 +419,7 @@ async def launch_browser(slug: str) -> int:
 
     # Verify VPN is running
     status = _get_vpn_status_sync(slug)
-    if status not in ("Active", "Starting"):
+    if status not in ("Active", "Idle", "Starting"):
         raise RuntimeError(f"VPN is not running for '{slug}' (status: {status}). Start VPN first.")
 
     profile_dir = _client_dir(slug) / "browser" / "profile"
