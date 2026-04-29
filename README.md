@@ -6,6 +6,8 @@ Each client gets its own Linux network namespace with a dedicated WireGuard inte
 
 Named after Fernando Pessoa, who kept dozens of complete literary identities in parallel — each with its own biography, voice, and signature.
 
+![Pessoa dashboard with multiple clients in different VPN states](docs/screenshots/dashboard.webp)
+
 ## Why
 
 Operators who manage online accounts for multiple clients (social, advertising, hosting, dashboards of all sorts) often need to source traffic from the client's own IP rather than the operator's home connection. Browser containers and cookie-level isolation don't solve this — the network path still leaks. Per-app VPNs and kernel-level namespaces do, but they're CLI tools with no workflow layer on top.
@@ -108,6 +110,9 @@ journalctl --user -u pessoa -f   # follow logs
 
 1. Open `http://localhost:8000/`
 2. Click **+ New Client** and select a WireGuard `.conf` file. The filename (minus `.conf`) becomes the client slug — keep it to `[a-z0-9-]+` with `pessoa-{slug}` ≤ 15 characters (Linux interface name limit).
+
+   ![New Client modal — drop a WireGuard .conf file](docs/screenshots/new-client-modal.webp)
+
 3. Click **Start VPN** to create the namespace and bring up the tunnel. The card transitions Starting → Active once a handshake completes (usually 1–3 seconds).
 4. Click **Open Browser** to launch Firefox inside the namespace with the client's persistent profile.
 5. Click **Stop VPN** to tear down the namespace and kill the browser.
