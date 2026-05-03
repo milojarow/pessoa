@@ -61,11 +61,25 @@ kill_existing_browser() {
 
 kill_existing_browser "$PROFILE_DIR" "$CLIENT"
 
+DOWNLOADS_DIR="$HOME/.pessoa/clients/$CLIENT/browser/downloads"
+mkdir -p "$DOWNLOADS_DIR"
+
 USER_JS="$PROFILE_DIR/user.js"
 if [ -f "$USER_JS" ]; then
-    sed -i '/network\.proxy\./d' "$USER_JS"
+    sed -i -e '/network\.proxy\./d' \
+           -e '/browser\.download\./d' \
+           -e '\#^// S45 Panel#d' \
+           -e '\#^// Pessoa Panel#d' \
+           "$USER_JS"
 fi
-echo 'user_pref("network.proxy.type", 0);' >> "$USER_JS"
+cat >> "$USER_JS" <<EOF
+// Pessoa Panel - managed prefs (do not edit this block)
+user_pref("network.proxy.type", 0);
+user_pref("browser.download.folderList", 2);
+user_pref("browser.download.dir", "$DOWNLOADS_DIR");
+user_pref("browser.download.lastDir", "$DOWNLOADS_DIR");
+user_pref("browser.download.useDownloadDir", true);
+EOF
 
 # Detect Wayland display
 WAYLAND_NAME="${WAYLAND_DISPLAY:-}"

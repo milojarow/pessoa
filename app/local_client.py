@@ -413,6 +413,32 @@ def _stop_vpn_sync(slug: str) -> None:
     )
 
 
+def _apply_profile_prefs(slug: str) -> None:
+    """Rewrite the managed block of user.js (proxy + per-client downloads)."""
+    profile_dir = _client_dir(slug) / "browser" / "profile"
+    downloads_dir = _client_dir(slug) / "browser" / "downloads"
+    downloads_dir.mkdir(parents=True, exist_ok=True)
+
+    user_js = profile_dir / "user.js"
+    existing = user_js.read_text().splitlines() if user_js.exists() else []
+    managed_keys = ("network.proxy.", "browser.download.")
+    panel_markers = ("// S45 Panel", "// Pessoa Panel")
+    preserved = [
+        l for l in existing
+        if not l.startswith(panel_markers) and not any(k in l for k in managed_keys)
+    ]
+    dl = json.dumps(str(downloads_dir))
+    managed = [
+        "// Pessoa Panel - managed prefs (do not edit this block)",
+        'user_pref("network.proxy.type", 0);',
+        'user_pref("browser.download.folderList", 2);',
+        f'user_pref("browser.download.dir", {dl});',
+        f'user_pref("browser.download.lastDir", {dl});',
+        'user_pref("browser.download.useDownloadDir", true);',
+    ]
+    user_js.write_text("\n".join(preserved + managed) + "\n")
+
+
 async def launch_browser(slug: str) -> int:
     """Launch Firefox inside the client's network namespace."""
     netns = _netns_name(slug)
@@ -426,12 +452,7 @@ async def launch_browser(slug: str) -> int:
     if not profile_dir.exists():
         raise RuntimeError(f"Browser profile not found for '{slug}'")
 
-    user_js = profile_dir / "user.js"
-    if user_js.exists():
-        lines = user_js.read_text().splitlines()
-        cleaned = [l for l in lines if "network.proxy." not in l]
-        cleaned.append('user_pref("network.proxy.type", 0);')
-        user_js.write_text("\n".join(cleaned) + "\n")
+    _apply_profile_prefs(slug)
 
     # Kill existing browser for this profile
     import subprocess
