@@ -155,7 +155,7 @@ def _build_client_info(slug: str) -> dict:
 
     return {
         "slug": slug,
-        "name": slug.capitalize(),
+        "name": data.get("name", slug.capitalize()),
         "state": state,
         "status": status,
         "created": data.get("created", ""),
